@@ -26,6 +26,11 @@ func (h *Handler) handleUpdate(update tgbotapi.Update) {
 	if update.Message == nil {
 		return
 	}
+
+	if update.Message.IsCommand() {
+		h.handleCommand(update)
+		return
+	}
 	// If we got a message
 	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 	coordinates, err := h.owClient.Coordinates(update.Message.Text)

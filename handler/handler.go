@@ -10,14 +10,16 @@ import (
 )
 
 type Handler struct {
-	bot      *tgbotapi.BotAPI
-	owClient *openweather.OpenWeatherClient
+	bot        *tgbotapi.BotAPI
+	owClient   *openweather.OpenWeatherClient
+	usersState map[int64]string
 }
 
 func New(bot *tgbotapi.BotAPI, owClient *openweather.OpenWeatherClient) *Handler {
 	return &Handler{
-		bot:      bot,
-		owClient: owClient,
+		bot:        bot,
+		owClient:   owClient,
+		usersState: make(map[int64]string),
 	}
 }
 
@@ -27,12 +29,23 @@ func (h *Handler) handleUpdate(update tgbotapi.Update) {
 		return
 	}
 
+	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+	userID := update.Message.From.ID
+
+	if state, ok := h.usersState[userID]; ok {
+		switch state {
+		case "waiting_location":
+			h.handleLocation(update)
+			return
+		}
+	}
 	if update.Message.IsCommand() {
 		h.handleCommand(update)
 		return
 	}
+
 	// If we got a message
-	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+
 	coordinates, err := h.owClient.Coordinates(update.Message.Text)
 	if err != nil {
 		log.Println(err)
